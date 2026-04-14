@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LEVEL UP</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#0a0a0a,#1b1f3a);
+color:white;
+}
+
+nav{
+display:flex;
+justify-content:space-around;
+background:#111;
+padding:12px;
+position:sticky;
+top:0;
+}
+
+nav button{
+background:none;
+border:none;
+color:white;
+cursor:pointer;
+font-size:15px;
+}
+
+.page{display:none;padding:20px;}
+.active{display:block;}
+
+.card{
+background:#1e1e2f;
+padding:15px;
+border-radius:12px;
+margin:10px 0;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:8px 0;
+border-radius:8px;
+border:none;
+}
+
+button{
+background:#4a5cff;
+color:white;
+padding:10px;
+border:none;
+border-radius:8px;
+width:100%;
+margin-top:10px;
+cursor:pointer;
+}
+
+.exercise{
+background:#222;
+padding:10px;
+margin:5px;
+border-radius:8px;
+cursor:pointer;
+}
+.selected{background:#4a5cff;}
+
+.bar{
+height:18px;
+background:#4a5cff;
+margin:5px 0;
+border-radius:6px;
+}
+
+/* MUSCLE MAP */
+.muscle-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:10px;
+}
+
+.muscle{
+padding:10px;
+border-radius:10px;
+text-align:center;
+font-size:12px;
+}
+
+.green{background:#1e8f4d;}
+.yellow{background:#b08b2b;}
+.red{background:#8b1e1e;}
+</style>
+</head>
+
+<body>
+
+<nav>
+<button onclick="show('home')">Home</button>
+<button onclick="show('schedule')">Schedule</button>
+<button onclick="show('fitfuel')">FitFuel</button>
+<button onclick="show('body')">Body</button>
+</nav>
+
+<!-- LOGIN -->
+<div id="login" class="page active">
+<h1>LEVEL UP</h1>
+<input placeholder="Email">
+<input type="password" placeholder="Password">
+<button onclick="show('goal')">Login</button>
+</div>
+
+<!-- GOAL -->
+<div id="goal" class="page">
+<h2>Choose Goal</h2>
+<button onclick="setGoal('gain')">Muscle Gain</button>
+<button onclick="setGoal('loss')">Weight Loss</button>
+</div>
+
+<!-- INFO -->
+<div id="info" class="page">
+<h2>Your Info</h2>
+<input id="weight" placeholder="Weight (lbs)">
+<input id="height" placeholder="Height">
+<input id="age" placeholder="Age">
+<button onclick="show('muscles')">Next</button>
+</div>
+
+<!-- MUSCLES -->
+<div id="muscles" class="page">
+<h2>Select 3 Exercises per Muscle</h2>
+<div id="list"></div>
+<button onclick="prepareWeights()">Next</button>
+</div>
+
+<!-- WEIGHTS -->
+<div id="weights" class="page">
+<h2>Starting Weights</h2>
+<div id="wbox"></div>
+<button onclick="finishSetup()">Finish</button>
+</div>
+
+<!-- HOME -->
+<div id="home" class="page">
+<h2>Dashboard</h2>
+<div class="card">Your plan is ready</div>
+</div>
+
+<!-- SCHEDULE -->
+<div id="schedule" class="page">
+<h2>Workout Plan</h2>
+<div id="out"></div>
+</div>
+
+<!-- FITFUEL -->
+<div id="fitfuel" class="page">
+<h2>FitFuel</h2>
+<input id="ask" placeholder="Ask for meal">
+<button onclick="meal()">Ask</button>
+<div id="mealOut"></div>
+</div>
+
+<!-- BODY MAP -->
+<div id="body" class="page">
+<h2>Muscle Recovery</h2>
+<div class="muscle-grid" id="bodyMap"></div>
+</div>
+
+<script>
+
+/* ---------------- STATE ---------------- */
+let goal="";
+let selected=[];
+let startWeights={};
+
+const muscles=[
+"Chest","Back","Shoulders","Biceps","Triceps","Forearms",
+"Abs","Obliques","Quads","Hamstrings","Glutes","Calves"
+];
+
+/* ---------------- NAV ---------------- */
+function show(p){
+document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+document.getElementById(p).classList.add('active');
+}
+
+/* ---------------- GOAL ---------------- */
+function setGoal(g){
+goal=g;
+show('info');
+}
+
+/* ---------------- MUSCLE SELECT ---------------- */
+let list=document.getElementById("list");
+
+muscles.forEach(m=>{
+let div=document.createElement("div");
+div.className="exercise";
+div.innerText=m;
+
+div.onclick=()=>{
+if(selected.includes(m)){
+selected=selected.filter(x=>x!==m);
+div.classList.remove("selected");
+} else if(selected.length<3){
+selected.push(m);
+div.classList.add("selected");
+}
+};
+
+list.appendChild(div);
+});
+
+/* ---------------- WEIGHTS ---------------- */
+function prepareWeights(){
+show('weights');
+let box=document.getElementById("wbox");
+box.innerHTML="";
+
+selected.forEach(m=>{
+box.innerHTML+=`<input id="w_${m}" placeholder="${m} starting weight">`;
+});
+}
+
+/* ---------------- FINISH ---------------- */
+function finishSetup(){
+selected.forEach(m=>{
+startWeights[m]=Number(document.getElementById("w_"+m).value)||10;
+saveWorkoutTime(m);
+});
+generate();
+buildBody();
+show('home');
+}
+
+/* ---------------- PROGRESSIVE OVERLOAD ---------------- */
+function generate(){
+let out="";
+selected.forEach(m=>{
+let base=startWeights[m];
+
+for(let w=1;w<=6;w++){
+let gain = goal==="gain"?1.07:1.03;
+let val = Math.round(base*Math.pow(gain,w));
+out+=`<b>${m}</b> Week ${w}: ${val} lbs<br>`;
+}
+out+="<br>";
+});
+
+document.getElementById("out").innerHTML=out;
+}
+
+/* ---------------- FITFUEL ---------------- */
+function meal(){
+let w=Number(document.getElementById("weight").value)||150;
+let protein=Math.round(w*0.8);
+
+document.getElementById("mealOut").innerHTML=`
+<b>Protein Target:</b> ${protein}g<br><br>
+Chicken Bowl<br>
+- Chicken<br>- Rice<br>- Veggies<br><br>
+Swap: tofu / beef / beans
+`;
+}
+
+/* ---------------- MUSCLE RECOVERY (LOCAL STORAGE) ---------------- */
+function saveWorkoutTime(m){
+let data=JSON.parse(localStorage.getItem("muscles")||"{}");
+data[m]=Date.now();
+localStorage.setItem("muscles",JSON.stringify(data));
+}
+
+function getColor(last){
+if(!last) return "green";
+let diff=(Date.now()-last)/1000/60/60;
+if(diff<24) return "red";
+if(diff<72) return "yellow";
+return "green";
+}
+
+function buildBody(){
+let data=JSON.parse(localStorage.getItem("muscles")||"{}");
+let map=document.getElementById("bodyMap");
+map.innerHTML="";
+
+muscles.forEach(m=>{
+let color=getColor(data[m]);
+
+map.innerHTML+=`
+<div class="muscle ${color}">
+${m}
+</div>`;
+});
+}
+
+buildBody();
+
+</script>
+
+</body>
+</html>
